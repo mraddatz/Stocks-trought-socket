@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.11/vue.min.js"> </script>
+
+
+    <title>Document</title>
+</head>
+<body>
+    <h1>Título</h1>
+    <div id="app">
+        <Button v-on:click="socketSwitch" id="socket-switch">
+            {{ buttonText }}
+        </Button>
+        <ul>
+            <li v-for="(item, key) in stocksValue" :key="key">
+                {{ key }} - {{item}}
+            </li>
+        </ul>
+
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+    <script>
+        var socketCommunication = true;
+        // document.getElementById("dsocket-switch").onclick = function() {socketSwitch()};
+
+        var Socket = io('https://le-18262636.bitzonte.com', {path: '/stocks'});
+        var textoBoton = ''
+        var stocksValue = {}
+
+        Socket.on('UPDATE', (data) => {
+
+            if (data.ticker in stocksValue){
+                stocksValue[data.ticker].push(data.value)
+            }
+            // receptions.push(data.ticker)
+            app.$forceUpdate();
+        })
+
+        Socket.emit('EXCHANGES')
+
+        Socket.emit('STOCKS')
+
+        Socket.on('EXCHANGES', (data) => {
+            console.log("In Exchanges")
+            console.log(data)
+        })
+
+
+        var app = new Vue({
+            el: '#app',
+            data: {
+                buttonText: 'Desactivar Socket',
+                socketConnection: true,
+                Socket: Socket,
+                'stocksValue': stocksValue
+            },
+            methods: {
+                socketSwitch () {
+                    if (this.socketConnection){
+                        this.socketConnection = false;
+                        this.buttonText = 'Activar Socket';
+                        this.Socket.disconnect();
+                    } else {
+                        this.socketConnection = true;
+                        this.buttonText = 'Desactivar Socket';
+                        this.Socket.connect();
+                    }
+                },
+            }
+        })
+
+        Socket.on('STOCKS', (data) => {
+            for (stock in data){
+                stocksValue[data[stock].ticker] = []
+            }
+            app.$forceUpdate();
+
+        })
+
+        var desactivateSocketButton = new Vue({
+            el: '#d-s-b',
+            onClick: {
+                'messages': receptions,
+            }
+        })
+
+    </script>
+    <!-- <script src="/js/app.js"></script> -->
+
+
+</body>
+</html>
