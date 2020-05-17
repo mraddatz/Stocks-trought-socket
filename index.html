@@ -10,85 +10,236 @@
     <title>Document</title>
 </head>
 <body>
-    <h1>Título</h1>
+    <h1>Stocks</h1>
     <div id="app">
+        {{ statusText }}
         <Button v-on:click="socketSwitch" id="socket-switch">
             {{ buttonText }}
         </Button>
+
+        <h2>Stocks Value Gráficos
+        </h2>
+        Acá debien ir los graficos por acción que no hice.
+        Muestro de todas forma los valores recibidos.
         <ul>
-            <li v-for="(item, key) in stocksValue" :key="key">
-                {{ key }} - {{item}}
+            <li v-for="(item, key) in stocksInfo" :key="key">
+                {{ key }} - {{item.value}}
             </li>
         </ul>
+        <h1 style="color: green">Exchanges</h1>
+        <div v-for="exchange in exchangesInfo" style="border: 1px green solid">
+        <p>
+            <h2>{{ exchange.name }}</h2>
+        </p>
+        <p>
+            Cantidad de Acciones: {{ exchange.cantAcciones }}
+            <ul>
+                <li v-for="accion in exchange.acciones">
+                    {{ accion }}
+                </li>
+            </ul>
+        </p>
+        <p>
+            Cantidad Compra: {{ exchange.buyVol }}
+        </p>
+        <p>
+            Cantidad Venta: {{ exchange.sellVol }}
+        </p>
+        <p>
+            Volumen Total: {{ exchange.totalVol }}
+        </p>
+        <p>
+            PArticipación de Mercado: {{ marketParticipation(exchange.totalVol) }}% (redondeado al entero más cercano)
+        </p>
+            <br>
+        </div>
+        <h1 style="color: blue">Stocks</h1>
+
+        <div v-for="stock in stocksInfo" style="border: 1px blue solid">
+            <h2>Stock: {{ stock.name }} </h2>
+            <p>
+                Volumen Total transado: {{ stock.totalTransVal}}
+            </p>
+            <p>
+                Alto Histórico: {{ stock.histUp}}
+            </p>
+            <p>
+                Bajo Histórico: {{ stock.histDown}}
+            </p>
+            <p>
+                Último precio: {{ stock.lastValue}}
+            </p>
+            <p>
+                Variación porcentual: {{ stock.porcentualVariation}}%
+            </p>
+
+
+        </div>
 
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
     <script>
         var socketCommunication = true;
         // document.getElementById("dsocket-switch").onclick = function() {socketSwitch()};
 
         var Socket = io('https://le-18262636.bitzonte.com', {path: '/stocks'});
         var textoBoton = ''
-        var stocksValue = {}
+        var stocksInfo = {}
+        var exchangesInfo = {}
+        var tickerExchange = {}
 
         Socket.on('UPDATE', (data) => {
 
-            if (data.ticker in stocksValue){
-                stocksValue[data.ticker].push(data.value)
+            if (data.ticker in stocksInfo){
+                stocksInfo[data.ticker].value.push(data.value)
+                if (data.value > stocksInfo[data.ticker].histUp) {
+                    stocksInfo[data.ticker].histUp = data.value;
+                }
+                if (data.value < stocksInfo[data.ticker].histDown) {
+                    stocksInfo[data.ticker].histDown = data.value;
+                }
+                stocksInfo[data.ticker].porcentualVariation = ((stocksInfo[data.ticker].lastValue - data.value) / stocksInfo[data.ticker].lastValue )
+                stocksInfo[data.ticker].lastValue = data.value;
+                app.$forceUpdate();
             }
             // receptions.push(data.ticker)
-            app.$forceUpdate();
+            
         })
 
+        Socket.on('BUY', (data) => {
+            console.log("BUY")
+            console.log(exchangesInfo)
+            console.log(tickerExchange)
+            
+            if (data.ticker in stocksInfo){
+                console.log("Entro a BuY IF")
+                console.log(tickerExchange[data.ticker])
+                exchangesInfo[tickerExchange[data.ticker]].buyVol += data.volume;
+                exchangesInfo[tickerExchange[data.ticker]].totalVol += data.volume;
+
+                stocksInfo[data.ticker].totalTransVal += data.volume;
+            }
+            
+        })
+
+        Socket.on('SELL', (data) => {
+        console.log("SELL")
+
+        console.log(data)
+        if (data.ticker in stocksInfo){
+                exchangesInfo[tickerExchange[data.ticker]].sellVol += data.volume;
+                exchangesInfo[tickerExchange[data.ticker]].totalVol += data.volume;
+
+                stocksInfo[data.ticker].totalTransVal += data.volume;
+            }
+        })
+        
         Socket.emit('EXCHANGES')
-
-        Socket.emit('STOCKS')
-
+        
+        
+        
         Socket.on('EXCHANGES', (data) => {
             console.log("In Exchanges")
             console.log(data)
+            for (exchange in data){
+                exchangesInfo[exchange] = {
+                    name: data[exchange].name,
+                    acciones: data[exchange].listed_companies,
+                    cantAcciones: data[exchange].listed_companies.length,
+                    buyVol: 0,
+                    sellVol: 0,
+                    totalVol: 0,
+                    partMercado:0,
+                }
+            }
+            console.log(exchangesInfo)
+            app.$forceUpdate();
+            Socket.emit('STOCKS')
         })
+        
+        Socket.on('STOCKS', (data) => {
+            console.log("In Stocks")
+            console.log(data)
+            for (stock in data){
+                stocksInfo[data[stock].ticker] = {
+                    name: data[stock].company_name,
+                    ticker: data[stock].ticker,
+                    value:[],
+                    totalTransVal: 0,
+                    histUp: 0,
+                    histDown: 9999999,
+                    lastValue: 0,
+                    porcentualVariation: 0,
+                }
+                for (exchange in exchangesInfo){
+                    console.log(exchangesInfo[exchange]);
+                    if (exchangesInfo[exchange].acciones.includes(data[stock].company_name)){
+                        tickerExchange[data[stock].ticker] = exchange;
+                    }
+                }
+            }
+            app.$forceUpdate();
 
+        });
 
         var app = new Vue({
             el: '#app',
             data: {
                 buttonText: 'Desactivar Socket',
+                statusText: 'Conexón Activa',
                 socketConnection: true,
                 Socket: Socket,
-                'stocksValue': stocksValue
+                'stocksInfo': stocksInfo,
+                'exchangesInfo': exchangesInfo,
             },
             methods: {
                 socketSwitch () {
                     if (this.socketConnection){
                         this.socketConnection = false;
                         this.buttonText = 'Activar Socket';
+                        this.statusText = 'Conexión Desactivada'
                         this.Socket.disconnect();
                     } else {
                         this.socketConnection = true;
                         this.buttonText = 'Desactivar Socket';
+                        this.statusText = 'Conexión Activa';
                         this.Socket.connect();
+                        Socket.emit('EXCHANGES')
                     }
                 },
-            }
+                marketParticipation: function (myTotalVol){
+                    var total = 0;
+                    for (exchange in this.exchangesInfo){
+                        total += this.exchangesInfo[exchange].totalVol;
+                    }
+                    return Math.round(((100*myTotalVol/total)*100)/100)
+                },
+            },
         })
 
-        Socket.on('STOCKS', (data) => {
-            for (stock in data){
-                stocksValue[data[stock].ticker] = []
-            }
-            app.$forceUpdate();
 
-        })
 
-        var desactivateSocketButton = new Vue({
-            el: '#d-s-b',
-            onClick: {
-                'messages': receptions,
-            }
-        })
+    google.charts.load('current', {'packages':['corechart']});
+    google.charts.setOnLoadCallback(drawChart);
 
+    function drawChart() {
+        var data = google.visualization.arrayToDataTable([
+          ['Year', 'Sales', 'Expenses'],
+          ['2004',  1000,      400],
+          ['2005',  1170,      460],
+          ['2006',  660,       1120],
+          ['2007',  1030,      540]
+        ]);
+
+        var options = {
+          title: 'Company Performance',
+          curveType: 'function',
+          legend: { position: 'bottom' }
+        };
+    }
     </script>
     <!-- <script src="/js/app.js"></script> -->
 
