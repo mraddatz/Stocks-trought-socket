@@ -17,7 +17,7 @@
             {{ buttonText }}
         </Button>
 
-        <div id="curve_chart" style="width: 900px; height: 500px"></div>
+        <!-- <div id="curve_chart" style="width: 900px; height: 500px"></div> -->
 
         <h2>Stocks Value Gráficos
         </h2>
@@ -88,8 +88,8 @@
 
         </div>
     </div>
-    <div  v-for="stock in stocksInfo" v-bind:id="stock.name" style="border: 1px red solid; float:left; margin:10px; width: 900px; height: 500px">
-    </div>
+    <!-- <div  v-for="stock in stocksInfo" v-bind:id="stock.name" style="border: 1px red solid; float:left; margin:10px; width: 900px; height: 500px">
+    </div> -->
 
     </div>  
     </div>
@@ -118,7 +118,7 @@
                 if (data.value < stocksInfo[data.ticker].histDown) {
                     stocksInfo[data.ticker].histDown = data.value;
                 }
-                stocksInfo[data.ticker].porcentualVariation = ((stocksInfo[data.ticker].lastValue - data.value) / stocksInfo[data.ticker].lastValue )
+                stocksInfo[data.ticker].porcentualVariation = ((data.value - stocksInfo[data.ticker].lastValue) / stocksInfo[data.ticker].lastValue )
                 stocksInfo[data.ticker].lastValue = data.value;
                 app.$forceUpdate();
             }
@@ -243,27 +243,27 @@
 
 
 
-        google.charts.load('current', {'packages':['corechart']});
-        google.charts.setOnLoadCallback(drawChart);
+        // google.charts.load('current', {'packages':['corechart']});
+        // google.charts.setOnLoadCallback(drawChart);
 
-        function drawChart(stockName) {
+        // function drawChart(stockName) {
 
-            var data = google.visualization.arrayToDataTable([
-                ['Year', 'Sales', 'Expenses'],
-                ['2004',  1000,      400],
-                ['2005',  1170,      460],
-                ['2006',  660,       1120],
-                ['2007',  1030,      540]
-            ]);
+        //     var data = google.visualization.arrayToDataTable([
+        //         ['Year', 'Sales', 'Expenses'],
+        //         ['2004',  1000,      400],
+        //         ['2005',  1170,      460],
+        //         ['2006',  660,       1120],
+        //         ['2007',  1030,      540]
+        //     ]);
             
-            var options = {
-                title: 'Company Performance',
-                curveType: 'function',
-                legend: { position: 'bottom' }
-            };
-            var chart = new google.visualization.LineChart(document.getElementById("curve_chart"));
-            chart.draw(data, options);
-        }
+        //     var options = {
+        //         title: 'Company Performance',
+        //         curveType: 'function',
+        //         legend: { position: 'bottom' }
+        //     };
+        //     var chart = new google.visualization.LineChart(document.getElementById("curve_chart"));
+        //     chart.draw(data, options);
+        // }
 
 
 
